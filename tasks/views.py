@@ -24,6 +24,7 @@ def user_tasks(request):
         serializer = TaskSerializer(tasks, many=True)
         return Response(serializer.data)
 
+
 @api_view(["GET", "PUT", "DELETE"])
 @permission_classes([IsAuthenticated])
 def tasks_detail(request, task_id):
@@ -31,16 +32,44 @@ def tasks_detail(request, task_id):
         'User ', f"{request.user.id} {request.user.email} {request.user.username}")
     task = get_object_or_404(Task, id=task_id)
     if request.method == 'GET':
-        serializer = TaskSerializer(task);
+        serializer = TaskSerializer(task)
         return Response(serializer.data)
-        
+
     if request.method == "PUT":
-        serializer = TaskSerializer(task, data=request.data);
+        serializer = TaskSerializer(task, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
-    
-    if request.method == "DELETE":        
+
+    if request.method == "DELETE":
         task.delete()
-        return Response(status = status.HTTP_204_NO_CONTENT)
-    
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def toggle_Status(status: str):
+    TASK_STATUS_CHOICES = [
+        'ready',
+        'in_progress',
+        'completed'
+    ]
+    status_index = TASK_STATUS_CHOICES.index(status) + 1
+    if (status_index == 3):
+        status_index = 0
+    return TASK_STATUS_CHOICES[status_index]
+
+
+@api_view(["GET", "PUT", "DELETE"])
+@permission_classes([IsAuthenticated])
+def task_status_toggle(request, task_id):
+    print(
+        'User ', f"{request.user.id} {request.user.email} {request.user.username}")
+
+    task = get_object_or_404(Task, id=task_id)
+
+    if request.method == "PUT":  # toggle is_Cooked
+        task_status = {'status': toggle_Status(task.status)}
+        serializer = TaskSerializer(
+            task, data=task_status, partial=True)  # type: ignore
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
